@@ -193,7 +193,6 @@ MEM_STATIC unsigned BIT_highbit32 (U32 val)
     }
 }
 
-/*=====    Local Constants   =====*/
 static const unsigned BIT_mask[] = {
     0,          1,         3,         7,         0xF,       0x1F,
     0x3F,       0x7F,      0xFF,      0x1FF,     0x3FF,     0x7FF,
@@ -202,6 +201,43 @@ static const unsigned BIT_mask[] = {
     0xFFFFFF,   0x1FFFFFF, 0x3FFFFFF, 0x7FFFFFF, 0xFFFFFFF, 0x1FFFFFFF,
     0x3FFFFFFF, 0x7FFFFFFF}; /* up to 31 bits */
 #define BIT_MASK_SIZE (sizeof(BIT_mask) / sizeof(BIT_mask[0]))
+
+MEM_STATIC size_t BIT_getUpperBits(size_t bitContainer, U32 const start)
+{
+    return bitContainer >> start;
+}
+
+MEM_STATIC size_t BIT_getMiddleBits(size_t bitContainer, U32 const start, U32 const nbBits)
+{
+#if defined(__BMI__) && defined(__GNUC__) && __GNUC__*1000+__GNUC_MINOR__ >= 4008  /* experimental */
+#  if defined(__x86_64__)
+    if (sizeof(bitContainer)==8)
+        return _bextr_u64(bitContainer, start, nbBits);
+    else
+#  endif
+        return _bextr_u32(bitContainer, start, nbBits);
+#else
+    assert(nbBits < BIT_MASK_SIZE);
+    return (bitContainer >> start) & BIT_mask[nbBits];
+#endif
+}
+
+MEM_STATIC size_t BIT_getLowerBits(size_t bitContainer, U32 const nbBits)
+{
+#if 0 && defined(__BMI2__)
+    /* this code path hopes to generate a bzhi instruction
+     * (see http://www.felixcloutier.com/x86/BZHI.html for details)
+     * Verified working on clang >= v3.4.
+     * gcc would generate 4-instructions instead, using shlx (bmi2),
+     * which seems about as fast as table loop-up below */
+    return bitContainer & (((size_t)1 << nbBits) - 1);
+#else
+    /* table look-up implementation, using only 3-instructions.
+     * It is faster than non-bmi2 version above (6 instructions) */
+    assert(nbBits < BIT_MASK_SIZE);
+    return bitContainer & BIT_mask[nbBits];
+#endif
+}
 
 /*-**************************************************************
 *  bitStream encoding
@@ -231,12 +267,12 @@ MEM_STATIC void BIT_addBits(BIT_CStream_t* bitC,
     MEM_STATIC_ASSERT(BIT_MASK_SIZE == 32);
     assert(nbBits < BIT_MASK_SIZE);
     assert(nbBits + bitC->bitPos < sizeof(bitC->bitContainer) * 8);
-    bitC->bitContainer |= (value & BIT_mask[nbBits]) << bitC->bitPos;
+    bitC->bitContainer |= BIT_getLowerBits(value, nbBits) << bitC->bitPos;
     bitC->bitPos += nbBits;
 }
 
 /*! BIT_addBitsFast() :
- *  works only if `value` is _clean_, meaning all high bits above nbBits are 0 */
+ *  works only if `value` is _clean_, all high bits above nbBits must be 0 */
 MEM_STATIC void BIT_addBitsFast(BIT_CStream_t* bitC,
                                 size_t value, unsigned nbBits)
 {
@@ -343,32 +379,6 @@ MEM_STATIC size_t BIT_initDStream(BIT_DStream_t* bitD, const void* srcBuffer, si
     }
 
     return srcSize;
-}
-
-MEM_STATIC size_t BIT_getUpperBits(size_t bitContainer, U32 const start)
-{
-    return bitContainer >> start;
-}
-
-MEM_STATIC size_t BIT_getMiddleBits(size_t bitContainer, U32 const start, U32 const nbBits)
-{
-#if defined(__BMI__) && defined(__GNUC__) && __GNUC__*1000+__GNUC_MINOR__ >= 4008  /* experimental */
-#  if defined(__x86_64__)
-    if (sizeof(bitContainer)==8)
-        return _bextr_u64(bitContainer, start, nbBits);
-    else
-#  endif
-        return _bextr_u32(bitContainer, start, nbBits);
-#else
-    assert(nbBits < BIT_MASK_SIZE);
-    return (bitContainer >> start) & BIT_mask[nbBits];
-#endif
-}
-
-MEM_STATIC size_t BIT_getLowerBits(size_t bitContainer, U32 const nbBits)
-{
-    assert(nbBits < BIT_MASK_SIZE);
-    return bitContainer & BIT_mask[nbBits];
 }
 
 /*! BIT_lookBits() :
