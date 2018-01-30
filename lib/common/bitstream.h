@@ -209,7 +209,7 @@ MEM_STATIC size_t BIT_getUpperBits(size_t bitContainer, U32 const start)
 
 MEM_STATIC size_t BIT_getMiddleBits(size_t bitContainer, U32 const start, U32 const nbBits)
 {
-#if defined(__BMI__) && defined(__GNUC__) && __GNUC__*1000+__GNUC_MINOR__ >= 4008  /* experimental */
+#if defined(__BMI__) && defined(__GNUC__) && __GNUC__*100+__GNUC_MINOR__ >= 408  /* experimental */
 #  if defined(__x86_64__)
     if (sizeof(bitContainer)==8)
         return _bextr_u64(bitContainer, start, nbBits);
@@ -389,12 +389,8 @@ MEM_STATIC size_t BIT_initDStream(BIT_DStream_t* bitD, const void* srcBuffer, si
  * @return : value extracted */
 MEM_STATIC size_t BIT_lookBits(const BIT_DStream_t* bitD, U32 nbBits)
 {
-#if defined(__BMI__) && defined(__GNUC__)   /* experimental; fails if bitD->bitsConsumed + nbBits > sizeof(bitD->bitContainer)*8 */
-    return BIT_getMiddleBits(bitD->bitContainer, (sizeof(bitD->bitContainer)*8) - bitD->bitsConsumed - nbBits, nbBits);
-#else
     U32 const regMask = sizeof(bitD->bitContainer)*8 - 1;
     return ((bitD->bitContainer << (bitD->bitsConsumed & regMask)) >> 1) >> ((regMask-nbBits) & regMask);
-#endif
 }
 
 /*! BIT_lookBitsFast() :
