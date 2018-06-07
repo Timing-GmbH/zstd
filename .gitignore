@@ -29,6 +29,7 @@ projects/
 bin/
 .buckd/
 buck-out/
+.build/
 
 # Other files
 .directory
