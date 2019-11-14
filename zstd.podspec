@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'zstd'
-  s.version          = '1.3.3'
+  s.version          = '1.4.4'
   s.summary          = 'A fast lossless compression algorithm, targeting real-time compression scenarios at zlib-level and better compression ratios'
 
   s.description      = <<-DESC
@@ -10,7 +10,7 @@ Zstandard, or zstd as short version, is a fast lossless compression algorithm, t
   s.homepage         = 'https://github.com/MrMage/zstd'
   s.license          = { :type => 'BSD', :file => 'LICENSE' }
   s.author           = { 'Daniel Alm' => 'zstd@danielalm.de' }
-  s.source           = { :git => 'https://github.com/MrMage/zstd.git', :tag => '1.3.3-pods' }
+  s.source           = { :git => 'https://github.com/MrMage/zstd.git', :tag => '1.4.4-pods' }
 
   s.ios.deployment_target = '8.0'
   s.osx.deployment_target = '10.10'
