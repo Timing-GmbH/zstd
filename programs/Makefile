@@ -157,6 +157,8 @@ endif
 zstd-release: DEBUGFLAGS :=
 zstd-release: zstd
 
+zstd32 : CPPFLAGS += $(THREAD_CPP)
+zstd32 : LDFLAGS += $(THREAD_LD) 
 zstd32 : CPPFLAGS += -DZSTD_LEGACY_SUPPORT=$(ZSTD_LEGACY_SUPPORT)
 zstd32 : $(ZSTDLIB_FILES) zstdcli.c fileio.c bench.c datagen.c dibio.c
 ifneq (,$(filter Windows%,$(OS)))
@@ -241,7 +243,7 @@ preview-man: clean-man man
 	man ./zstd.1
 
 #-----------------------------------------------------------------------------
-# make install is validated only for Linux, OSX, BSD, Hurd and Solaris targets
+# make install is validated only for Linux, macOS, BSD, Hurd and Solaris targets
 #-----------------------------------------------------------------------------
 ifneq (,$(filter $(shell uname),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS))
 

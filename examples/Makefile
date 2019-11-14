@@ -9,6 +9,7 @@
 
 # This Makefile presumes libzstd is installed, using `sudo make install`
 
+CPPFLAGS += -I../lib
 LIB = ../lib/libzstd.a
 
 .PHONY: default all clean test
@@ -21,7 +22,7 @@ all: simple_compression simple_decompression \
 	multiple_streaming_compression streaming_memory_usage
 
 $(LIB) :
-	make -C ../lib libzstd.a
+	$(MAKE) -C ../lib libzstd.a
 
 simple_compression : simple_compression.c $(LIB)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ $(LDFLAGS) -o $@

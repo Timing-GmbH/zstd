@@ -19,7 +19,7 @@ DESCRIPTION
 with command line syntax similar to `gzip (1)` and `xz (1)`.
 It is based on the **LZ77** family, with further FSE & huff0 entropy stages.
 `zstd` offers highly configurable compression speed,
-with fast modes at > 200 MB/s per code,
+with fast modes at > 200 MB/s per core,
 and strong modes nearing lzma compression ratios.
 It also features a very fast decoder, with speeds > 500 MB/s per core.
 
@@ -115,14 +115,28 @@ the last one takes effect.
 
     Note: If `windowLog` is set to larger than 27, `--long=windowLog` or
     `--memory=windowSize` needs to be passed to the decompressor.
+* `--fast[=#]`:
+    switch to ultra-fast compression levels.
+    If `=#` is not present, it defaults to `1`.
+    The higher the value, the faster the compression speed,
+    at the cost of some compression ratio.
+    This setting overwrites compression level if one was set previously.
+    Similarly, if a compression level is set after `--fast`, it overrides it.
+
 * `-T#`, `--threads=#`:
-    Compress using `#` threads (default: 1).
+    Compress using `#` working threads (default: 1).
     If `#` is 0, attempt to detect and use the number of physical CPU cores.
-    In all cases, the nb of threads is capped to ZSTDMT_NBTHREADS_MAX==256.
+    In all cases, the nb of threads is capped to ZSTDMT_NBTHREADS_MAX==200.
     This modifier does nothing if `zstd` is compiled without multithread support.
+* `--single-thread`:
+    Does not spawn a thread for compression, use caller thread instead.
+    This is the only available mode when multithread support is disabled.
+    In this mode, compression is serialized with I/O.
+    (This is different from `-T1`, which spawns 1 compression thread in parallel of I/O).
+    Single-thread mode also features lower memory usage.
 * `-D file`:
     use `file` as Dictionary to compress or decompress FILE(s)
-* `--nodictID`:
+* `--no-dictID`:
     do not store dictionary ID within frame header (dictionary compression).
     The decoder will have to rely on implicit knowledge about which dictionary to use,
     it won't be able to check if it's correct.
@@ -137,7 +151,7 @@ the last one takes effect.
     to make files with many zeroes smaller on disk.
     Creating sparse files may save disk space and speed up decompression by
     reducing the amount of disk I/O.
-    default : enabled when output is into a file,
+    default: enabled when output is into a file,
     and disabled when output is stdout.
     This setting overrides default and can force sparse mode over stdout.
 * `--rm`:
@@ -150,7 +164,8 @@ the last one takes effect.
 * `--format=FORMAT`:
     compress and decompress in other formats. If compiled with
     support, zstd can compress to or decompress from other compression algorithm
-    formats. Possibly available options are `gzip`, `xz`, `lzma`, and `lz4`.
+    formats. Possibly available options are `zstd`, `gzip`, `xz`, `lzma`, and `lz4`.
+    If no such format is provided, `zstd` is the default.
 * `-h`/`-H`, `--help`:
     display help/long help and exit
 * `-V`, `--version`:
@@ -163,7 +178,7 @@ the last one takes effect.
     suppress warnings, interactivity, and notifications.
     specify twice to suppress errors too.
 * `-C`, `--[no-]check`:
-    add integrity check computed from uncompressed data (default : enabled)
+    add integrity check computed from uncompressed data (default: enabled)
 * `--`:
     All arguments after `--` are treated as files
 
@@ -171,12 +186,12 @@ the last one takes effect.
 DICTIONARY BUILDER
 ------------------
 `zstd` offers _dictionary_ compression,
-useful for very small files and messages.
-It's possible to train `zstd` with some samples,
+which greatly improves efficiency on small files and messages.
+It's possible to train `zstd` with a set of samples,
 the result of which is saved into a file called a `dictionary`.
-Then during compression and decompression, reference the same dictionary.
-It will improve compression ratio of small files.
-Typical gains range from 10% (at 64KB) to x5 better (at <1KB).
+Then during compression and decompression, reference the same dictionary,
+using command `-D dictionaryFileName`.
+Compression of small files similar to the sample set will be greatly improved.
 
 * `--train FILEs`:
     Use FILEs as training set to create a dictionary.
@@ -192,6 +207,10 @@ Typical gains range from 10% (at 64KB) to x5 better (at <1KB).
     Dictionary saved into `file` (default name: dictionary).
 * `--maxdict=#`:
     Limit dictionary to specified size (default: 112640).
+* `-#`:
+    Use `#` compression level during training (optional).
+    Will generate statistics more tuned for selected compression level,
+    resulting in a _small_ compression ratio improvement for this level.
 * `-B#`:
     Split input files in blocks of size # (default: no split)
 * `--dictID=#`:
@@ -252,7 +271,7 @@ BENCHMARK
 * `-e#`:
     benchmark file(s) using multiple compression levels, from `-b#` to `-e#` (inclusive)
 * `-i#`:
-    minimum evaluation time, in seconds (default : 3s), benchmark mode only
+    minimum evaluation time, in seconds (default: 3s), benchmark mode only
 * `-B#`, `--block-size=#`:
     cut file(s) into independent blocks of size # (default: no block)
 * `--priority=rt`:
@@ -329,14 +348,21 @@ The list of available _options_:
     The minimum _slen_ is 3 and the maximum is 7.
 
 - `targetLen`=_tlen_, `tlen`=_tlen_:
-    Specify the minimum match length that causes a match finder to stop
-    searching for better matches.
+    The impact of this field vary depending on selected strategy.
 
-    A larger minimum match length usually improves compression ratio but
-    decreases compression speed.
-    This option is only used with strategies ZSTD_btopt and ZSTD_btultra.
+    For ZSTD\_btopt and ZSTD\_btultra, it specifies the minimum match length
+    that causes match finder to stop searching for better matches.
+    A larger `targetLen` usually improves compression ratio
+    but decreases compression speed.
 
-    The minimum _tlen_ is 4 and the maximum is 999.
+    For ZSTD\_fast, it triggers ultra-fast mode when > 0.
+    The value represents the amount of data skipped between match sampling.
+    Impact is reversed : a larger `targetLen` increases compression speed
+    but decreases compression ratio.
+
+    For all other strategies, this field has no impact.
+
+    The minimum _tlen_ is 0 and the maximum is 999.
 
 - `overlapLog`=_ovlog_,  `ovlog`=_ovlog_:
     Determine `overlapSize`, amount of data reloaded from previous job.
@@ -367,7 +393,7 @@ The list of available _options_:
 
     Larger/very small values usually decrease compression ratio.
 
-    The minumum _ldmslen_ is 4 and the maximum is 4096 (default: 64).
+    The minimum _ldmslen_ is 4 and the maximum is 4096 (default: 64).
 
 - `ldmBucketSizeLog`=_ldmblog_, `ldmblog`=_ldmblog_:
     Specify the size of each bucket for the hash table used for long distance
@@ -391,6 +417,12 @@ The list of available _options_:
 
     The default value is `wlog - ldmhlog`.
 
+### Example
+The following parameters sets advanced compression options to something
+similar to predefined level 19 for files bigger than 256 KB:
+
+`--zstd`=wlog=23,clog=23,hlog=22,slog=6,slen=3,tlen=48,strat=6
+
 ### -B#:
 Select the size of each compression job.
 This parameter is available only when multi-threading is enabled.
@@ -398,12 +430,6 @@ Default value is `4 * windowSize`, which means it varies depending on compressio
 `-B#` makes it possible to select a custom value.
 Note that job size must respect a minimum value which is enforced transparently.
 This minimum is either 1 MB, or `overlapSize`, whichever is largest.
-
-### Example
-The following parameters sets advanced compression options to those of
-predefined level 19 for files bigger than 256 KB:
-
-`--zstd`=windowLog=23,chainLog=23,hashLog=22,searchLog=6,searchLength=3,targetLength=48,strategy=6
 
 BUGS
 ----

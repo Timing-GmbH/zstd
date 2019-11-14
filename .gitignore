@@ -23,12 +23,14 @@ zstdmt
 # Test artefacts
 tmp*
 dictionary*
+NUL
 
 # Build artefacts
 projects/
 bin/
 .buckd/
 buck-out/
+.build/
 
 # Other files
 .directory
