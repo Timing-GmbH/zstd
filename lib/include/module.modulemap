@@ -1,6 +1,13 @@
 module zstd {
   header "zstd.h"
   
+  textual header "zstd_compress_literals.h"
+  textual header "zstd_compress_sequences.h"
+  textual header "zstd_cwksp.h"
+  textual header "zstd_ddict.h"
+  textual header "zstd_decompress_block.h"
+  textual header "zstd_decompress_internal.h"
+  textual header "cover.h"
   textual header "bitstream.h"
   textual header "compiler.h"
   textual header "cpu.h"
