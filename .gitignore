@@ -35,6 +35,8 @@ bin/
 buck-out/
 build-*
 *.gcda
+.build/
+*.xcodeproj
 
 # Other files
 .directory
