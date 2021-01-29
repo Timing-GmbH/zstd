@@ -3,18 +3,18 @@
 import PackageDescription
 
 let package = Package(
-    name: "zstd",
-    products: [
-        .library(
-            name: "zstd",
-            targets: ["zstd"]),
-    ],
-    targets: [
-        .target(
-            name: "zstd",
+	name: "zstd",
+	products: [
+		.library(
+			name: "zstd",
+			targets: ["zstd"]),
+	],
+	targets: [
+		.target(
+			name: "zstd",
 			path: "lib",
 			exclude: ["dll"],
-			publicHeadersPath: "lib"),
-    ],
+			publicHeadersPath: "."),
+	],
 	cLanguageStandard: .gnu11
 )
