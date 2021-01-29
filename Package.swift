@@ -13,7 +13,8 @@ let package = Package(
         .target(
             name: "zstd",
 			path: "lib",
-			exclude: ["dll"]),
+			exclude: ["dll"],
+			publicHeadersPath: "lib"),
     ],
 	cLanguageStandard: .gnu11
 )
