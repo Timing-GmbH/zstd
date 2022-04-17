@@ -11,6 +11,8 @@
 #ifndef ZSTD_PORTABILITY_MACROS_H
 #define ZSTD_PORTABILITY_MACROS_H
 
+#define ZSTD_DISABLE_ASM 1
+
 /**
  * This header file contains macro defintions to support portability.
  * This header is shared between C and ASM code, so it MUST only

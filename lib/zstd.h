@@ -11,8 +11,6 @@
 extern "C" {
 #endif
 
-#define ZSTD_DISABLE_ASM 1
-
 #ifndef ZSTD_H_235446
 #define ZSTD_H_235446
 
