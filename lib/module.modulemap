@@ -1,4 +1,4 @@
-module libzstd [extern_c] {
+module zstd [extern_c] {
     header "zstd.h"
     export *
     config_macros [exhaustive] \
